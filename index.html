@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบวัดแวว ม.1 | ค้นพบตัวเอง</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a14;
+    --surface: #12121f;
+    --surface2: #1a1a2e;
+    --accent1: #f0a500;
+    --accent2: #e05c5c;
+    --accent3: #5cc8e0;
+    --accent4: #7c5ce0;
+    --text: #f0ede8;
+    --text-dim: #9896a4;
+    --border: #2a2a42;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240,165,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,165,0,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+  .screen { display: none; animation: fadeIn 0.5s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* HERO */
+  .hero { text-align: center; padding: 80px 20px 60px; }
+  .hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(240,165,0,0.15), rgba(124,92,224,0.15));
+    border: 1px solid rgba(240,165,0,0.3);
+    border-radius: 999px;
+    padding: 6px 20px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent1);
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: 'Noto Serif Thai', serif;
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 700;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #f0e8d0, var(--accent1), #f0e8d0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero p { color: var(--text-dim); font-size: 18px; max-width: 520px; margin: 0 auto 48px; line-height: 1.8; }
+  
+  /* INPUT SECTION */
+  .user-input-section { text-align: center; margin-bottom: 40px; }
+  .input-label { color: var(--text-dim); font-size: 14px; margin-bottom: 10px; display: block; }
+  .input-seq {
+    padding: 14px 24px; border-radius: 12px; border: 1px solid var(--accent1);
+    background: rgba(240,165,0,0.05); color: var(--text); font-size: 16px;
+    width: 100%; max-width: 320px; font-family: 'Sarabun', sans-serif;
+    text-align: center; transition: all 0.3s;
+  }
+  .input-seq:focus { outline: none; border-color: var(--accent4); background: rgba(124,92,224,0.1); }
+  .input-seq::placeholder { color: var(--text-dim); opacity: 0.7; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 20px; }
+  .assessment-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px 30px; cursor: pointer; transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative; overflow: hidden; text-align: left;
+  }
+  .assessment-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.35s; border-radius: 20px; }
+  .assessment-card.aptitude::before { background: radial-gradient(circle at 30% 30%, rgba(240,165,0,0.12), transparent 70%); }
+  .assessment-card.career::before { background: radial-gradient(circle at 30% 30%, rgba(92,200,224,0.12), transparent 70%); }
+  .assessment-card:hover { transform: translateY(-6px); border-color: rgba(240,165,0,0.4); }
+  .assessment-card:hover::before { opacity: 1; }
+  .assessment-card:hover .card-icon { transform: scale(1.1) rotate(5deg); }
+  .card-icon {
+    width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    font-size: 32px; margin-bottom: 20px; transition: transform 0.3s;
+  }
+  .aptitude .card-icon { background: linear-gradient(135deg, rgba(240,165,0,0.2), rgba(240,165,0,0.05)); }
+  .career .card-icon { background: linear-gradient(135deg, rgba(92,200,224,0.2), rgba(92,200,224,0.05)); }
+  .card-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .aptitude .card-label { color: var(--accent1); }
+  .career .card-label { color: var(--accent3); }
+  .card-title { font-family: 'Noto Serif Thai', serif; font-size: 22px; font-weight: 700; margin-bottom: 12px; line-height: 1.4; }
+  .card-desc { color: var(--text-dim); font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
+  .card-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
+  .btn-start {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 12px; font-size: 15px;
+    font-weight: 600; font-family: 'Sarabun', sans-serif; border: none; cursor: pointer; transition: all 0.25s;
+    width: 100%; justify-content: center; z-index: 10; position: relative;
+  }
+  .aptitude .btn-start { background: linear-gradient(135deg, var(--accent1), #e09000); color: #1a1000; }
+  .career .btn-start { background: linear-gradient(135deg, var(--accent3), #3ab0c8); color: #001a1f; }
+  .btn-start:hover { transform: scale(1.03); filter: brightness(1.1); }
+
+  /* QUIZ */
+  .quiz-header { padding: 40px 0 20px; display: flex; align-items: center; gap: 16px; }
+  .back-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); padding: 8px 16px;
+    border-radius: 10px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 14px; transition: all 0.2s; flex-shrink: 0;
+  }
+  .back-btn:hover { border-color: var(--accent1); color: var(--accent1); }
+  .quiz-meta { flex: 1; }
+  .quiz-title-small { font-family: 'Noto Serif Thai', serif; font-size: 18px; font-weight: 700; }
+  .quiz-subtitle { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .progress-wrap { background: var(--surface2); border-radius: 999px; height: 6px; margin: 16px 0 8px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent1), var(--accent4)); transition: width 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+  .progress-label { text-align: right; font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 36px; margin-bottom: 20px; }
+  .question-num { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent1); margin-bottom: 12px; }
+  .question-text { font-family: 'Noto Serif Thai', serif; font-size: 20px; font-weight: 600; line-height: 1.7; margin-bottom: 28px; }
+  .options-grid { display: grid; gap: 10px; }
+  .option-btn {
+    display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; cursor: pointer; text-align: left; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--text);
+    transition: all 0.2s; width: 100%;
+  }
+  .option-btn:hover { border-color: rgba(240,165,0,0.5); background: rgba(240,165,0,0.05); }
+  .option-btn.selected { border-color: var(--accent1); background: rgba(240,165,0,0.1); color: var(--accent1); }
+  .option-letter {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--border); display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; transition: all 0.2s;
+  }
+  .option-btn.selected .option-letter { background: var(--accent1); color: var(--bg); }
+  .nav-buttons { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; }
+  .btn-nav { padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: 'Sarabun', sans-serif; border: none; cursor: pointer; transition: all 0.25s; }
+  .btn-prev { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-prev:hover { border-color: var(--accent1); color: var(--accent1); }
+  .btn-next { background: linear-gradient(135deg, var(--accent1), #e09000); color: #1a1000; padding: 14px 40px; }
+  .btn-next:hover { transform: scale(1.03); }
+  .error-box { background: rgba(224,92,92,0.1); border: 1px solid rgba(224,92,92,0.3); border-radius: 12px; padding: 12px 18px; color: var(--accent2); font-size: 14px; margin-bottom: 12px; display: none; }
+
+  /* LOADING */
+  .loading-screen { text-align: center; padding: 100px 20px; }
+  .loading-orb { width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--accent1), var(--accent4), var(--accent3), var(--accent1)); animation: spin 1.2s linear infinite; margin: 0 auto 32px; position: relative; }
+  .loading-orb::after { content: ''; position: absolute; inset: 6px; background: var(--bg); border-radius: 50%; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'Noto Serif Thai', serif; font-size: 22px; margin-bottom: 8px; }
+  .loading-sub { color: var(--text-dim); font-size: 15px; }
+  .loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+  @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
+
+  /* RESULT */
+  .result-hero { text-align: center; padding: 60px 20px 40px; }
+  .result-badge { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(240,165,0,0.2), rgba(124,92,224,0.2)); border: 1px solid rgba(240,165,0,0.4); border-radius: 999px; padding: 8px 24px; font-size: 14px; color: var(--accent1); margin-bottom: 24px; }
+  .result-title { font-family: 'Noto Serif Thai', serif; font-size: clamp(28px, 5vw, 46px); font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, #f0e8d0, var(--accent1)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .result-type { font-size: 18px; color: var(--accent3); margin-bottom: 12px; font-weight: 600; }
+  .result-intro { color: var(--text-dim); font-size: 16px; line-height: 1.8; max-width: 600px; margin: 0 auto; }
+  .scores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 40px 0; }
+  .score-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px 16px; text-align: center; position: relative; overflow: hidden; }
+  .score-item::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .score-item:nth-child(1)::before { background: var(--accent1); }
+  .score-item:nth-child(2)::before { background: var(--accent3); }
+  .score-item:nth-child(3)::before { background: var(--accent4); }
+  .score-item:nth-child(4)::before { background: var(--accent2); }
+  .score-item:nth-child(5)::before { background: #5ce06a; }
+  .score-item:nth-child(6)::before { background: #e05c98; }
+  .score-label { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+  .score-val { font-family: 'Noto Serif Thai', serif; font-size: 34px; font-weight: 700; color: var(--accent1); }
+  .score-bar-wrap { background: var(--surface2); border-radius: 999px; height: 4px; margin-top: 10px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 999px; transition: width 1s cubic-bezier(0.23, 1, 0.32, 1); }
+  .result-sections { display: grid; gap: 20px; margin-bottom: 40px; }
+  .result-section { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+  .section-tag { display: inline-block; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent1); background: rgba(240,165,0,0.1); border-radius: 6px; padding: 4px 10px; margin-bottom: 14px; }
+  .section-tag.blue { color: var(--accent3); background: rgba(92,200,224,0.1); }
+  .section-tag.purple { color: var(--accent4); background: rgba(124,92,224,0.1); }
+  .section-tag.green { color: #5ce06a; background: rgba(92,224,106,0.1); }
+  .section-h { font-family: 'Noto Serif Thai', serif; font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+  .section-body { color: var(--text-dim); font-size: 15px; line-height: 1.9; }
+  .career-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
+  .career-chip { 
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; 
+    padding: 12px 14px; font-size: 14px; color: var(--text);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .career-chip .chip-icon { font-size: 20px; flex-shrink: 0; }
+  .career-chip .chip-text {}
+  .career-chip .chip-name { font-weight: 600; color: var(--accent1); font-size: 14px; }
+  .career-chip .chip-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.5; }
+  .btn-retry { display: block; width: 100%; max-width: 360px; margin: 0 auto 60px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--text-dim); font-family: 'Sarabun', sans-serif; font-size: 16px; cursor: pointer; transition: all 0.25s; text-align: center; }
+  .btn-retry:hover { border-color: var(--accent1); color: var(--accent1); }
+
+  @media (max-width: 600px) {
+    .question-card { padding: 24px 20px; }
+    .nav-buttons { flex-direction: column-reverse; }
+    .btn-nav { width: 100%; }
+    .btn-next { padding: 14px; }
+    .career-list { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="screen-home" class="screen active">
+  <div class="container">
+    <div class="hero">
+      <div class="hero-badge">✦ ระบบประเมินออนไลน์ สำหรับ ม.1</div>
+      <h1>ค้นพบตัวเอง<br>ด้วยการวัดแวว</h1>
+      <p>ทำแบบประเมินเพื่อค้นหาความถนัดและอาชีพที่ใช่สำหรับคุณ ออกแบบเฉพาะสำหรับนักเรียนชั้น ม.1</p>
+    </div>
+    
+    <div class="user-input-section">
+      <label class="input-label" for="user-seq">ระบุหมายเลขลำดับ / ชื่อ-นามสกุล ก่อนเริ่มทำแบบประเมิน</label>
+      <input type="text" id="user-seq" class="input-seq" placeholder="เช่น 001 หรือ ด.ช.สมชาย...">
+    </div>
+
+    <div class="card-grid">
+      <div class="assessment-card aptitude">
+        <div class="card-icon">🧠</div>
+        <div class="card-label">แบบที่ 1</div>
+        <div class="card-title">วัดแววความถนัด</div>
+        <div class="card-desc">ค้นพบว่าตัวเองเก่งด้านไหน ทั้งด้านตรรกะ ภาษา ศิลปะ การช่วยเหลือผู้อื่น หรือการลงมือทำ</div>
+        <div class="card-meta">
+          <span>⏱ ~8 นาที</span>
+          <span>📋 15 ข้อ</span>
+        </div>
+        <button class="btn-start" id="btn-start-aptitude">เริ่มทำแบบประเมิน →</button>
+      </div>
+      <div class="assessment-card career">
+        <div class="card-icon">🎯</div>
+        <div class="card-label">แบบที่ 2</div>
+        <div class="card-title">วัดแววอาชีพ</div>
+        <div class="card-desc">ค้นหาอาชีพที่เหมาะกับนิสัยและความชอบของคุณ พร้อมแนะนำแนวทางที่ควรเริ่มต้น</div>
+        <div class="card-meta">
+          <span>⏱ ~10 นาที</span>
+          <span>📋 18 ข้อ</span>
+        </div>
+        <button class="btn-start" id="btn-start-career">เริ่มทำแบบประเมิน →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-quiz" class="screen">
+  <div class="container">
+    <div class="quiz-header">
+      <button class="back-btn" onclick="goHome()">← กลับหน้าหลัก</button>
+      <div class="quiz-meta">
+        <div class="quiz-title-small" id="quiz-title-small"></div>
+        <div class="quiz-subtitle" id="quiz-subtitle"></div>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label"></div>
+    <div class="question-card">
+      <div class="question-num" id="question-num"></div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options-grid" id="options-grid"></div>
+    </div>
+    <div class="error-box" id="error-box">⚠ กรุณาเลือกคำตอบก่อนดำเนินการต่อ</div>
+    <div class="nav-buttons">
+      <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQ()">← ก่อนหน้า</button>
+      <button class="btn-nav btn-next" id="btn-next" onclick="nextQ()">ถัดไป →</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-loading" class="screen">
+  <div class="container">
+    <div class="loading-screen">
+      <div class="loading-orb"></div>
+      <div class="loading-text">กำลังวิเคราะห์ผลลัพธ์<span class="loading-dots"></span></div>
+      <div class="loading-sub" style="margin-top:8px">ระบบกำลังประมวลผลและบันทึกคำตอบของคุณ</div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-result" class="screen">
+  <div class="container">
+    <div class="result-hero">
+      <div class="result-badge">✦ สรุปผลการประเมิน</div>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-type" id="result-type"></div>
+      <div class="result-intro" id="result-intro"></div>
+    </div>
+    <div class="scores-grid" id="scores-grid"></div>
+    <div class="result-sections" id="result-sections"></div>
+    <button class="btn-retry" onclick="goHome()">🔄 กลับสู่หน้าแรก / เลือกทำแบบอื่น</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// คำถาม — วัดแววความถนัด (15 ข้อ) เหมาะกับ ม.1
+// มิติ: logic | action | social | creative | verbal | spatial
+// ============================================================
+const APTITUDE_Q = [
+  {
+    q: "ตอนพักเที่ยง ถ้าเลือกได้ คุณอยากทำอะไรมากที่สุด?",
+    opts: ["นั่งอ่านหนังสือหรือเล่นปริศนา/เกมฝึกสมอง","วิ่งเล่น เตะบอล หรือทำกิจกรรมออกแรง","คุยเม้าเล่นกับเพื่อนๆ หรือช่วยดูแลน้อง","วาดรูป แต่งเพลง หรือทำงานประดิษฐ์"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "เวลาทำการบ้านกลุ่ม คุณมักจะทำหน้าที่อะไร?",
+    opts: ["วางแผน แบ่งงาน และตรวจสอบความถูกต้อง","ลงมือทำชิ้นงานจริงๆ ด้วยตัวเอง","คอยประสานงาน ดูว่าทุกคนโอเคไหม","ออกแบบหน้าตาหรือนำเสนองาน"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "วิชาไหนที่คุณสนุกมากที่สุดในห้องเรียน?",
+    opts: ["คณิตศาสตร์หรือวิทยาศาสตร์","พลศึกษาหรืองานอาชีพ/งานช่าง","ภาษาไทย สังคมศึกษา หรือแนะแนว","ศิลปะ ดนตรี หรือนาฏศิลป์"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "ถ้าเพื่อนมีปัญหา คุณมักช่วยอย่างไร?",
+    opts: ["ช่วยคิดหาทางออกอย่างเป็นขั้นตอน","ช่วยทำหรือช่วยแก้ปัญหาให้เลย","นั่งฟังและให้กำลังใจ","คิดวิธีแก้แบบใหม่ที่ไม่เคยลองมาก่อน"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "เวลาดูวิดีโอหรือสารคดี คุณชอบเรื่องแบบไหน?",
+    opts: ["วิทยาศาสตร์ ปริศนา หรือการค้นพบใหม่ๆ","กีฬา สัตว์ป่า หรือการผจญภัย","เรื่องราวของคน ความสัมพันธ์ หรือชุมชน","ศิลปะ อนิเมชั่น ดนตรี หรือภาพถ่าย"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "ถ้าต้องอธิบายเรื่องยากๆ ให้เพื่อนเข้าใจ คุณจะใช้วิธีไหน?",
+    opts: ["เขียนขั้นตอนหรือสูตรให้ชัดเจน","สาธิตให้ดูหรือทำตัวอย่างให้เห็น","เล่าเรื่องหรือยกตัวอย่างที่เข้าใจง่าย","วาดภาพหรือใช้แผนภาพ"],
+    dim: ["verbal","action","social","spatial"]
+  },
+  {
+    q: "คุณรู้สึกภูมิใจมากที่สุดเมื่อ...",
+    opts: ["แก้โจทย์ยากๆ หรือไขปริศนาได้สำเร็จ","ทำสิ่งที่ยากด้วยมือตัวเองได้สำเร็จ","ทำให้เพื่อนหรือคนอื่นรู้สึกดีขึ้น","ผลงานสร้างสรรค์ของตัวเองออกมาสวย"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "ห้องที่คุณอยากใช้เวลาคืออะไร?",
+    opts: ["ห้องสมุดเงียบๆ มีหนังสือและอินเทอร์เน็ต","สนามหรือโรงฝึก ที่ได้เคลื่อนไหว","ห้องโถงที่มีคนหลายคน ได้คุยได้แลกเปลี่ยน","ห้องสตูดิโอ มีเครื่องดนตรีหรืออุปกรณ์วาดรูป"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "เวลาเห็นแผนที่หรือแบบแปลน คุณรู้สึกอย่างไร?",
+    opts: ["อ่านแล้วเข้าใจได้เร็ว ชอบวิเคราะห์","ชอบดูว่าจะสร้างหรือประกอบได้อย่างไร","ไม่ค่อยสนใจ ชอบถามคนที่รู้มากกว่า","มองแล้วจินตนาการว่าตกแต่งได้ยังไง"],
+    dim: ["spatial","action","social","creative"]
+  },
+  {
+    q: "สิ่งที่เพื่อนๆ มักขอให้คุณช่วยคืออะไร?",
+    opts: ["อธิบายโจทย์คณิตหรือวิทย์","ซ่อมของ ประกอบ LEGO หรืองานประดิษฐ์","ระงับเรื่องทะเลาะหรือช่วยไกล่เกลี่ย","ช่วยแต่งงาน ออกแบบ หรือตกแต่งของ"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "เมื่อต้องเรียนรู้วิชาใหม่ คุณเข้าใจได้เร็วที่สุดเมื่อ...",
+    opts: ["ครูอธิบายพร้อมเหตุผลและตรรกะ","ได้ลองทำด้วยตัวเองในชั้นเรียน","มีการอภิปราย แลกเปลี่ยนกับเพื่อน","มีภาพ สี หรือกราฟิกประกอบ"],
+    dim: ["logic","action","social","spatial"]
+  },
+  {
+    q: "ถ้าได้ทำโปรเจกต์ที่โรงเรียนอิสระ 1 เดือน คุณจะทำอะไร?",
+    opts: ["ทดลองวิทยาศาสตร์หรือเขียนโปรแกรม","สร้างหรือซ่อมอุปกรณ์จริงๆ","สำรวจชุมชนหรือช่วยเหลือผู้อื่น","วาดการ์ตูน แต่งเพลง หรือทำหนังสั้น"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "เมื่อทำงานผิดพลาด คุณรับมืออย่างไร?",
+    opts: ["คิดวิเคราะห์ว่าผิดตรงไหนแล้วแก้","ลองทำใหม่เลย ปรับไปเรื่อยๆ","ถามเพื่อนหรือครูว่าควรแก้ยังไง","ลองคิดวิธีใหม่ที่แตกต่างออกไป"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "คุณคิดว่าตัวเองเป็นคนแบบไหนมากที่สุด?",
+    opts: ["นักคิด — ชอบตั้งคำถามและหาคำตอบ","นักทำ — ชอบลงมือปฏิบัติและเห็นผล","นักช่วย — ชอบดูแลและเอาใจใส่คนอื่น","นักสร้าง — ชอบจินตนาการและแสดงออก"],
+    dim: ["logic","action","social","creative"]
+  },
+  {
+    q: "สิ่งแวดล้อมแบบไหนที่คุณเรียนรู้ได้ดีที่สุด?",
+    opts: ["เงียบๆ มีสมาธิ ไม่มีการรบกวน","ได้ขยับร่างกาย ทำกิจกรรมหลากหลาย","ทำงานเป็นกลุ่ม ช่วยเหลือกัน","มีอิสระ สร้างสรรค์ตามแรงบันดาลใจ"],
+    dim: ["logic","action","social","creative"]
+  }
+];
+
+// ============================================================
+// คำถาม — วัดแววอาชีพ (18 ข้อ) เหมาะกับ ม.1
+// มิติ: realistic | investigative | artistic | social | enterprising | conventional
+// (Holland RIASEC สำหรับเด็ก)
+// ============================================================
+const CAREER_Q = [
+  {
+    q: "ถ้าต้องเลือก ชั้นเรียนพิเศษที่คุณอยากเรียนมากที่สุดคือ?",
+    opts: ["ช่างไม้ ช่างเชื่อม หรือทำของด้วยมือ","โค้ดดิ้ง วิทยาศาสตร์ หรือหุ่นยนต์","วาดการ์ตูน ดนตรี หรือการแสดง","อาสาสมัคร ช่วยชุมชน หรือจิตอาสา"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "คุณอยากทำงานในสภาพแวดล้อมแบบไหน?",
+    opts: ["กลางแจ้ง สนาม โรงงาน หรือห้องปฏิบัติการ","ห้องทำงานเงียบๆ มีคอมพิวเตอร์และข้อมูล","สตูดิโอ เวที หรือแกลเลอรี่ศิลปะ","โรงเรียน โรงพยาบาล หรือที่ที่มีผู้คนต้องการความช่วยเหลือ"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "สิ่งที่ทำแล้วทำให้คุณ 'ลืมเวลา' คืออะไร?",
+    opts: ["ประกอบ ซ่อม หรือสร้างสิ่งของ","ค้นหาคำตอบ ทดลอง หรือเล่นเกมฝึกสมอง","วาดรูป เขียนนิยาย ฟังเพลง หรือแต่งเพลง","คุยกับเพื่อน ช่วยเหลือ หรือทำกิจกรรมกลุ่ม"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "อาชีพในฝันที่ฟังดูน่าสนใจที่สุดสำหรับคุณคือ?",
+    opts: ["วิศวกร ช่าง นักบิน หรือสถาปนิก","นักวิทยาศาสตร์ แพทย์ โปรแกรมเมอร์ หรือนักวิจัย","ศิลปิน นักดนตรี นักออกแบบ หรือผู้กำกับ","ครู พยาบาล นักสังคมสงเคราะห์ หรือนักจิตวิทยา"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "เวลาเห็นปัญหาในโรงเรียนหรือชุมชน คุณคิดอย่างไร?",
+    opts: ["อยากสร้างอุปกรณ์หรือเครื่องมือมาแก้ไข","อยากศึกษาหาสาเหตุและหาข้อมูลให้ครบ","อยากสื่อสารผ่านงานศิลปะหรือสร้างแคมเปญ","อยากลงมือช่วยเหลือคนที่ได้รับผลกระทบโดยตรง"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ถ้าต้องนำเสนองานหน้าชั้น คุณชอบนำเสนอแบบไหน?",
+    opts: ["สาธิตหรือแสดงชิ้นงานที่สร้างขึ้นมา","อธิบายด้วยข้อมูล กราฟ หรือผลการทดลอง","ทำสไลด์สวยหรือเล่าเรื่องให้น่าสนใจ","พูดถึงผลกระทบต่อชีวิตคนและสังคม"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "เมื่อต้องตัดสินใจเรื่องสำคัญ คุณเชื่อสิ่งไหนมากกว่า?",
+    opts: ["ประสบการณ์จริงและสิ่งที่จับต้องได้","ข้อมูล งานวิจัย และการวิเคราะห์","ความรู้สึก สัญชาตญาณ และความคิดสร้างสรรค์","ความเห็นของคนรอบข้างและผลกระทบต่อคนอื่น"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "กิจกรรมนอกหลักสูตรที่คุณอยากเข้าร่วมมากที่สุดคือ?",
+    opts: ["ชมรมหุ่นยนต์ ช่าง หรือกีฬา","ชมรมวิทยาศาสตร์ คณิตศาสตร์ หรือเขียนโปรแกรม","ชมรมศิลปะ ดนตรี การแสดง หรือถ่ายภาพ","ชมรมอาสาสมัคร สภานักเรียน หรือดูแลชุมชน"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ความสำเร็จที่คุณอยากได้มากที่สุดคืออะไร?",
+    opts: ["สร้างสิ่งประดิษฐ์หรืออาคารที่ยั่งยืน","ค้นพบหรือพัฒนาสิ่งใหม่ที่เปลี่ยนโลก","สร้างผลงานที่คนชื่นชมและประทับใจ","ช่วยให้ชีวิตของคนอื่นดีขึ้น"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ถ้ามีเวลาว่างทั้งวัน คุณจะใช้เวลาอย่างไร?",
+    opts: ["ทำของประดิษฐ์ ออกกำลังกาย หรือทำสวน","ดูสารคดี ทดลองสูตร หรือเขียนโค้ด","ดูหนัง ฟังเพลง หรือวาดรูปตามชอบใจ","ออกไปเที่ยวกับเพื่อน หรือทำกิจกรรมจิตอาสา"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ถ้าเป็นซูเปอร์ฮีโร่ คุณอยากใช้พลังอะไร?",
+    opts: ["แข็งแกร่งมาก สร้างหรือซ่อมได้ทุกอย่าง","ฉลาดที่สุดในโลก รู้ทุกอย่างทันที","สร้างสรรค์ได้ทุกอย่างที่จินตนาการ","อ่านใจคน และรักษาโรคหรือความทุกข์ได้"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "สิ่งที่ทำให้คุณ 'เบื่อ' ในการเรียนมากที่สุดคืออะไร?",
+    opts: ["นั่งเฉยๆ ไม่ได้ลงมือทำอะไรเลย","ท่องจำโดยไม่ต้องคิด ไม่มีเหตุผล","เรียนซ้ำๆ ไม่มีความคิดสร้างสรรค์","เรียนคนเดียวโดยไม่มีการพูดคุยแลกเปลี่ยน"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "เมื่อดูข่าว เรื่องแบบไหนที่คุณสนใจมากที่สุด?",
+    opts: ["การสร้างตึกใหม่ โครงสร้างพื้นฐาน หรือกีฬา","การค้นพบทางวิทยาศาสตร์ ยา หรือเทคโนโลยี","ข่าวศิลปะ ดนตรี หรือภาพยนตร์","ข่าวสิทธิมนุษยชน เด็ก หรือผู้ด้อยโอกาส"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ถ้าต้องช่วยแก้ปัญหาขยะในโรงเรียน คุณจะเลือกทำอะไร?",
+    opts: ["สร้างถังขยะหรืออุปกรณ์แยกขยะเอง","ศึกษาข้อมูลว่าขยะชนิดไหนมากที่สุดและหาทางลด","ออกแบบโปสเตอร์หรือวิดีโอรณรงค์","พูดคุยกับเพื่อนๆ และชวนทุกคนช่วยกัน"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "คนในครอบครัวหรือเพื่อนๆ มักชมคุณเรื่องอะไร?",
+    opts: ["ทำของได้ ซ่อมได้ ใช้มือเก่ง","ฉลาด จำเก่ง คิดวิเคราะห์ได้ดี","สร้างสรรค์ จินตนาการดี มีไอเดียเยอะ","ใจดี ช่วยเหลือคนอื่น เอาใจใส่"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "ในอนาคต คุณอยากเป็นคนที่โลกจดจำว่าอย่างไร?",
+    opts: ["คนที่สร้างสิ่งยิ่งใหญ่ที่ใช้งานได้จริง","คนที่ค้นพบความรู้ใหม่ให้มนุษยชาติ","คนที่ทิ้งผลงานศิลปะหรือความงามไว้","คนที่ทำให้ชีวิตคนอื่นดีขึ้น"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "คุณมองว่าเงินและความมั่นคงสำคัญแค่ไหน?",
+    opts: ["สำคัญ แต่ขอให้ได้ทำงานที่ใช้แรงและฝีมือ","สำคัญ แต่ขอให้งานน่าสนุกและท้าทายสมอง","ไม่ใช่อันดับหนึ่ง ขอตามความฝันและความหลงใหล","ไม่ใช่อันดับหนึ่ง ขอให้ได้ช่วยเหลือคนอื่นก็พอ"],
+    dim: ["realistic","investigative","artistic","social"]
+  },
+  {
+    q: "สิ่งที่คุณอยากทำในวันหยุดสุดสัปดาห์มากที่สุด?",
+    opts: ["ออกนอกบ้าน เดินป่า ตกปลา หรือทำสวน","ค้นคว้าเรื่องที่สนใจ ดูสารคดี หรือเล่นเกมฝึกสมอง","ดูหนัง ฟังเพลง ถ่ายรูป หรือเดินห้าง","ไปเจอเพื่อน ออกไปทำกิจกรรมกับกลุ่ม"],
+    dim: ["realistic","investigative","artistic","social"]
+  }
+];
+
+// ============================================================
+// ข้อมูลอาชีพแนะนำตาม Holland Type
+// ============================================================
+const CAREER_PROFILES = {
+  realistic: {
+    name: "นักปฏิบัติ (Realistic)",
+    emoji: "🔧",
+    desc: "คุณชอบทำงานกับมือ สิ่งของ เครื่องจักร และร่างกาย ถนัดงานที่เห็นผลจับต้องได้",
+    strengths: "ความแม่นยำ ทักษะการใช้มือ ความอดทน ชอบแก้ปัญหาเชิงกายภาพ",
+    careers: [
+      { icon: "✈️", name: "นักบิน / วิศวกรการบิน", desc: "ควบคุมและบำรุงรักษาอากาศยาน" },
+      { icon: "🏗️", name: "สถาปนิก / วิศวกรโยธา", desc: "ออกแบบและสร้างอาคาร โครงสร้าง" },
+      { icon: "⚡", name: "วิศวกรไฟฟ้า / ช่างไฟ", desc: "ติดตั้งและดูแลระบบไฟฟ้า" },
+      { icon: "🤖", name: "วิศวกรหุ่นยนต์", desc: "ออกแบบและสร้างหุ่นยนต์อัตโนมัติ" },
+      { icon: "🌲", name: "นักอนุรักษ์ / เกษตรกรสมัยใหม่", desc: "ดูแลทรัพยากรธรรมชาติด้วยเทคโนโลยี" },
+      { icon: "🏥", name: "แพทย์ศัลยกรรม / ทันตแพทย์", desc: "รักษาด้วยทักษะทางกายภาพ" }
+    ]
+  },
+  investigative: {
+    name: "นักสืบสวน (Investigative)",
+    emoji: "🔬",
+    desc: "คุณชอบคิด วิเคราะห์ ค้นหาคำตอบ และแก้ปัญหาที่ซับซ้อน ชอบความท้าทายทางสมอง",
+    strengths: "ความคิดเชิงวิเคราะห์ ความอยากรู้ ความละเอียดรอบคอบ ทักษะการวิจัย",
+    careers: [
+      { icon: "🧬", name: "นักวิทยาศาสตร์ / นักวิจัย", desc: "ค้นคว้าและค้นพบความรู้ใหม่" },
+      { icon: "💊", name: "แพทย์ / เภสัชกร", desc: "วินิจฉัยและพัฒนายารักษาโรค" },
+      { icon: "💻", name: "โปรแกรมเมอร์ / Data Scientist", desc: "เขียนโค้ดและวิเคราะห์ข้อมูลขนาดใหญ่" },
+      { icon: "🧠", name: "นักจิตวิทยา / นักประสาทวิทยา", desc: "ศึกษาพฤติกรรมและสมองมนุษย์" },
+      { icon: "🌌", name: "นักดาราศาสตร์ / ฟิสิกส์", desc: "ศึกษาจักรวาลและกฎธรรมชาติ" },
+      { icon: "🔐", name: "ผู้เชี่ยวชาญด้าน Cybersecurity", desc: "ป้องกันระบบจากการโจมตีทางไซเบอร์" }
+    ]
+  },
+  artistic: {
+    name: "นักสร้างสรรค์ (Artistic)",
+    emoji: "🎨",
+    desc: "คุณมีจินตนาการสูง ชอบแสดงออก สร้างสรรค์ และทำงานที่มีความงามหรือความหมาย",
+    strengths: "ความคิดสร้างสรรค์ จินตนาการ ทักษะการแสดงออก ความไวต่อความงาม",
+    careers: [
+      { icon: "🎬", name: "ผู้กำกับ / นักตัดต่อ", desc: "สร้างสรรค์ภาพยนตร์และสื่อดิจิทัล" },
+      { icon: "🖌️", name: "นักออกแบบกราฟิก / UX", desc: "ออกแบบสิ่งที่สวยงามและใช้งานดี" },
+      { icon: "🎵", name: "นักดนตรี / นักแต่งเพลง", desc: "สร้างสรรค์บทเพลงและดนตรี" },
+      { icon: "✍️", name: "นักเขียน / Content Creator", desc: "เล่าเรื่องและสร้างเนื้อหาที่ทรงพลัง" },
+      { icon: "🏛️", name: "สถาปนิก / นักออกแบบภายใน", desc: "ออกแบบพื้นที่ที่สวยงามและน่าใช้งาน" },
+      { icon: "📸", name: "ช่างภาพ / นักออกแบบแฟชั่น", desc: "จับภาพและสร้างสรรค์แฟชั่น" }
+    ]
+  },
+  social: {
+    name: "นักช่วยเหลือ (Social)",
+    emoji: "🤝",
+    desc: "คุณชอบทำงานกับคน ช่วยเหลือ สอน และพัฒนาผู้อื่น มีทักษะการสื่อสารและการเอาใจใส่สูง",
+    strengths: "ทักษะการสื่อสาร ความเห็นอกเห็นใจ ความเป็นผู้นำ การทำงานเป็นทีม",
+    careers: [
+      { icon: "👩‍🏫", name: "ครู / อาจารย์", desc: "ถ่ายทอดความรู้และพัฒนาเด็ก" },
+      { icon: "👨‍⚕️", name: "พยาบาล / นักกายภาพบำบัด", desc: "ดูแลสุขภาพและฟื้นฟูผู้ป่วย" },
+      { icon: "🧑‍💼", name: "นักสังคมสงเคราะห์", desc: "ช่วยเหลือผู้ด้อยโอกาสในสังคม" },
+      { icon: "🎤", name: "นักพูด / วิทยากร", desc: "สร้างแรงบันดาลใจและถ่ายทอดความรู้" },
+      { icon: "⚖️", name: "นักกฎหมาย / ทนายความ", desc: "ปกป้องสิทธิและความยุติธรรม" },
+      { icon: "🌍", name: "นักการทูต / NGO", desc: "ทำงานเพื่อสันติภาพและสังคม" }
+    ]
+  }
+};
+
+// ============================================================
+// ข้อมูลความถนัดสำหรับ APTITUDE
+// ============================================================
+const APTITUDE_PROFILES = {
+  logic: {
+    name: "ตรรกะและการวิเคราะห์",
+    emoji: "🧩",
+    desc: "คุณถนัดคิดอย่างมีระบบ วิเคราะห์ข้อมูล และแก้ปัญหาที่ซับซ้อน เหมาะกับสายวิทยาศาสตร์และเทคโนโลยี"
+  },
+  action: {
+    name: "ทักษะปฏิบัติและร่างกาย",
+    emoji: "⚙️",
+    desc: "คุณถนัดลงมือทำ ใช้ร่างกาย และเครื่องมือ เหมาะกับสายช่าง วิศวกรรม กีฬา และงานที่เห็นผลจริง"
+  },
+  social: {
+    name: "ทักษะสังคมและการสื่อสาร",
+    emoji: "💬",
+    desc: "คุณถนัดเข้าใจคน สื่อสาร และช่วยเหลือผู้อื่น เหมาะกับสายศึกษาศาสตร์ สาธารณสุข และสังคม"
+  },
+  creative: {
+    name: "ความคิดสร้างสรรค์",
+    emoji: "🎨",
+    desc: "คุณถนัดจินตนาการ แสดงออก และสร้างสรรค์สิ่งใหม่ เหมาะกับสายศิลปะ สื่อ และดีไซน์"
+  },
+  verbal: {
+    name: "ทักษะภาษาและการอธิบาย",
+    emoji: "📝",
+    desc: "คุณถนัดใช้ภาษา เล่าเรื่อง และถ่ายทอดความคิด เหมาะกับสายภาษา นิเทศศาสตร์ และวรรณกรรม"
+  },
+  spatial: {
+    name: "มิติสัมพันธ์และพื้นที่",
+    emoji: "🗺️",
+    desc: "คุณถนัดเข้าใจรูปทรง พื้นที่ และแผนภาพ เหมาะกับสายสถาปัตย์ วิศวกรรม และออกแบบ"
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentQuiz = null, currentQ = 0, answers = [], userSeq = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btn-start-aptitude').addEventListener('click', function() { startQuiz('aptitude'); });
+  document.getElementById('btn-start-career').addEventListener('click', function() { startQuiz('career'); });
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goHome() {
+  currentQuiz = null; currentQ = 0; answers = [];
+  showScreen('home');
+}
+
+function startQuiz(type) {
+  const seqInput = document.getElementById('user-seq').value.trim();
+  if (!seqInput) {
+    alert('กรุณาระบุหมายเลขลำดับหรือชื่อของคุณก่อนเริ่มทำแบบประเมิน');
+    document.getElementById('user-seq').focus();
+    return;
+  }
+  userSeq = seqInput;
+  currentQuiz = type; currentQ = 0;
+  const qs = type === 'aptitude' ? APTITUDE_Q : CAREER_Q;
+  answers = new Array(qs.length).fill(null);
+  document.getElementById('quiz-title-small').textContent = type === 'aptitude' ? '🧠 วัดแววความถนัด' : '🎯 วัดแววอาชีพ';
+  document.getElementById('quiz-subtitle').textContent = type === 'aptitude' ? 'ค้นพบด้านที่คุณมีศักยภาพสูงสุด' : 'ค้นหาอาชีพที่เหมาะกับตัวคุณ';
+  showScreen('quiz');
+  renderQ();
+}
+
+function renderQ() {
+  const qs = currentQuiz === 'aptitude' ? APTITUDE_Q : CAREER_Q;
+  const total = qs.length;
+  const q = qs[currentQ];
+  document.getElementById('progress-bar').style.width = (currentQ / total * 100) + '%';
+  document.getElementById('progress-label').textContent = `ข้อ ${currentQ + 1} / ${total}`;
+  document.getElementById('question-num').textContent = `คำถามที่ ${currentQ + 1}`;
+  document.getElementById('question-text').textContent = q.q;
+  const letters = ['A','B','C','D'];
+  document.getElementById('options-grid').innerHTML = q.opts.map((o, i) => `
+    <button class="option-btn ${answers[currentQ] === i ? 'selected' : ''}" onclick="selectOpt(${i})">
+      <span class="option-letter">${letters[i]}</span><span>${o}</span>
+    </button>`).join('');
+  document.getElementById('btn-prev').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = currentQ === total - 1 ? 'ส่งคำตอบ ✨' : 'ถัดไป →';
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function selectOpt(i) {
+  answers[currentQ] = i;
+  document.querySelectorAll('.option-btn').forEach((b, j) => b.classList.toggle('selected', j === i));
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function nextQ() {
+  const qs = currentQuiz === 'aptitude' ? APTITUDE_Q : CAREER_Q;
+  if (answers[currentQ] === null) { document.getElementById('error-box').style.display = 'block'; return; }
+  if (currentQ < qs.length - 1) { currentQ++; renderQ(); }
+  else submitQuiz();
+}
+
+function prevQ() { if (currentQ > 0) { currentQ--; renderQ(); } }
+
+function calcScores() {
+  const qs = currentQuiz === 'aptitude' ? APTITUDE_Q : CAREER_Q;
+  const s = {};
+  qs.forEach((q, i) => {
+    if (answers[i] === null) return;
+    const d = q.dim[answers[i]];
+    s[d] = (s[d] || 0) + 1;
+  });
+  return s;
+}
+
+async function submitQuiz() {
+  showScreen('loading');
+  const scores = calcScores();
+  const total = currentQuiz === 'aptitude' ? APTITUDE_Q.length : CAREER_Q.length;
+
+  const payload = {
+    sequence: userSeq,
+    quizType: currentQuiz,
+    scores: scores,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const WEB_APP_URL = "YOUR_GOOGLE_SCRIPT_WEB_APP_URL";
+    if (WEB_APP_URL !== "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
+      await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+    } else {
+      console.warn("ยังไม่ได้ตั้งค่า Google Script URL");
+    }
+    setTimeout(() => { renderLocalResult(scores, total); }, 1800);
+  } catch(e) {
+    console.error("Error saving data:", e);
+    renderLocalResult(scores, total);
+  }
+}
+
+function renderLocalResult(scores, total) {
+  const isAptitude = currentQuiz === 'aptitude';
+  const profiles = isAptitude ? APTITUDE_PROFILES : CAREER_PROFILES;
+  const dimNames = isAptitude
+    ? { logic:'ตรรกะ', action:'ปฏิบัติการ', social:'สังคม', creative:'สร้างสรรค์', verbal:'ภาษา', spatial:'มิติสัมพันธ์' }
+    : { realistic:'ลงมือปฏิบัติ', investigative:'วิเคราะห์', artistic:'สร้างสรรค์', social:'ช่วยเหลือ' };
+
+  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
+  const top = sorted[0];
+  const topKey = top?.[0];
+  const topProfile = profiles[topKey];
+
+  document.getElementById('result-title').textContent = topProfile ? `${topProfile.emoji} ${topProfile.name}` : 'สรุปผลของคุณ';
+  document.getElementById('result-type').textContent = top ? `คะแนนสูงสุด ${Math.round(top[1]/total*100)}% — หมายเลข ${userSeq}` : '';
+  document.getElementById('result-intro').textContent = topProfile ? topProfile.desc : 'ระบบได้บันทึกคำตอบของคุณแล้ว';
+
+  const barColors = ['var(--accent1)','var(--accent3)','var(--accent4)','var(--accent2)','#5ce06a','#e05c98'];
+  document.getElementById('scores-grid').innerHTML = sorted.map(([k,v],i) => `
+    <div class="score-item">
+      <div class="score-label">${dimNames[k]||k}</div>
+      <div class="score-val">${Math.round(v/total*100)}%</div>
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${v/total*100}%;background:${barColors[i%barColors.length]}"></div></div>
+    </div>`).join('');
+
+  let sectionsHTML = '';
+
+  // จุดแข็ง
+  if (topProfile && topProfile.strengths) {
+    sectionsHTML += `
+      <div class="result-section">
+        <div class="section-tag">⭐ จุดแข็งของคุณ</div>
+        <div class="section-h">สิ่งที่คุณทำได้ดีโดยธรรมชาติ</div>
+        <div class="section-body">${topProfile.strengths}</div>
+      </div>`;
+  }
+
+  // อาชีพแนะนำ (เฉพาะ career quiz)
+  if (!isAptitude && topProfile && topProfile.careers) {
+    const careerChips = topProfile.careers.map(c => `
+      <div class="career-chip">
+        <div class="chip-icon">${c.icon}</div>
+        <div class="chip-text">
+          <div class="chip-name">${c.name}</div>
+          <div class="chip-desc">${c.desc}</div>
+        </div>
+      </div>`).join('');
+    sectionsHTML += `
+      <div class="result-section">
+        <div class="section-tag blue">🎯 อาชีพที่เหมาะกับคุณ</div>
+        <div class="section-h">อาชีพที่น่าสนใจสำหรับคุณใน 10 ปีข้างหน้า</div>
+        <div class="section-body" style="margin-bottom:16px">เหล่านี้คืออาชีพที่เข้ากับบุคลิกและความสนใจของคุณ — ยังมีเวลาอีกมากในการสำรวจและค้นหาว่าตัวเองชอบอะไร</div>
+        <div class="career-list">${careerChips}</div>
+      </div>`;
+  }
+
+  // อาชีพแนะนำ (เฉพาะ aptitude quiz — แนะนำจาก top dim)
+  if (isAptitude) {
+    const aptCareerMap = {
+      logic: [
+        { icon:"💻", name:"นักวิทยาศาสตร์ข้อมูล", desc:"วิเคราะห์ข้อมูลขนาดใหญ่" },
+        { icon:"🔬", name:"นักวิจัย / นักวิทยาศาสตร์", desc:"ค้นพบความรู้ใหม่" },
+        { icon:"🧮", name:"วิศวกร / โปรแกรมเมอร์", desc:"แก้ปัญหาด้วยตรรกะ" },
+        { icon:"📊", name:"นักเศรษฐศาสตร์", desc:"วิเคราะห์และคาดการณ์แนวโน้ม" }
+      ],
+      action: [
+        { icon:"🔧", name:"วิศวกรเครื่องกล", desc:"ออกแบบและสร้างเครื่องจักร" },
+        { icon:"⚕️", name:"แพทย์ศัลยกรรม", desc:"รักษาด้วยทักษะทางกาย" },
+        { icon:"🏋️", name:"นักกีฬาอาชีพ / โค้ช", desc:"ฝึกฝนและพัฒนาร่างกาย" },
+        { icon:"🏗️", name:"สถาปนิก / ผู้รับเหมา", desc:"สร้างอาคารและโครงสร้าง" }
+      ],
+      social: [
+        { icon:"👩‍🏫", name:"ครู / นักการศึกษา", desc:"ถ่ายทอดและพัฒนาผู้อื่น" },
+        { icon:"🧑‍⚕️", name:"พยาบาล / นักจิตวิทยา", desc:"ดูแลสุขภาพกายและใจ" },
+        { icon:"🌍", name:"นักการทูต / NGO", desc:"ทำงานเพื่อสังคมและสันติภาพ" },
+        { icon:"🎤", name:"วิทยากร / พิธีกร", desc:"สื่อสารและสร้างแรงบันดาลใจ" }
+      ],
+      creative: [
+        { icon:"🎨", name:"นักออกแบบ / ศิลปิน", desc:"สร้างงานศิลปะและดีไซน์" },
+        { icon:"🎬", name:"ผู้กำกับ / Content Creator", desc:"สร้างสรรค์สื่อและภาพยนตร์" },
+        { icon:"✍️", name:"นักเขียน / คอลัมนิสต์", desc:"เล่าเรื่องราวที่ทรงพลัง" },
+        { icon:"🎵", name:"นักดนตรี / โปรดิวเซอร์", desc:"สร้างสรรค์เสียงและบทเพลง" }
+      ],
+      verbal: [
+        { icon:"📖", name:"นักข่าว / บรรณาธิการ", desc:"ค้นหาและถ่ายทอดข้อมูล" },
+        { icon:"🗣️", name:"ทนายความ / นักการเมือง", desc:"โต้แย้งและนำเสนออย่างมีพลัง" },
+        { icon:"🌐", name:"นักแปล / ล่าม", desc:"เชื่อมโยงภาษาและวัฒนธรรม" },
+        { icon:"🎙️", name:"พิธีกร / นักพากย์", desc:"ใช้เสียงและภาษาสร้างความบันเทิง" }
+      ],
+      spatial: [
+        { icon:"🏛️", name:"สถาปนิก", desc:"ออกแบบอาคารและพื้นที่" },
+        { icon:"🗺️", name:"นักผังเมือง / GIS", desc:"ออกแบบเมืองและแผนที่" },
+        { icon:"✈️", name:"นักบิน / วิศวกรการบิน", desc:"ควบคุมยานพาหนะในอากาศ" },
+        { icon:"🎮", name:"นักออกแบบเกม / 3D Artist", desc:"สร้างโลกเสมือนจริง" }
+      ]
+    };
+    const suggestedCareers = aptCareerMap[topKey] || [];
+    if (suggestedCareers.length) {
+      const careerChips = suggestedCareers.map(c => `
+        <div class="career-chip">
+          <div class="chip-icon">${c.icon}</div>
+          <div class="chip-text">
+            <div class="chip-name">${c.name}</div>
+            <div class="chip-desc">${c.desc}</div>
+          </div>
+        </div>`).join('');
+      sectionsHTML += `
+        <div class="result-section">
+          <div class="section-tag blue">🎯 อาชีพที่เหมาะกับความถนัดของคุณ</div>
+          <div class="section-h">แนวทางอาชีพที่น่าสำรวจ</div>
+          <div class="section-body" style="margin-bottom:16px">อาชีพเหล่านี้เหมาะกับความถนัดหลักของคุณ — ยังมีเวลาอีกมากในการค้นพบว่าตัวเองชอบอะไร</div>
+          <div class="career-list">${careerChips}</div>
+        </div>`;
+    }
+  }
+
+  // แนะนำขั้นตอนต่อไป
+  sectionsHTML += `
+    <div class="result-section">
+      <div class="section-tag green">🚀 ขั้นตอนต่อไปสำหรับคุณ</div>
+      <div class="section-h">เริ่มต้นตอนนี้ยังไม่สายเกินไป</div>
+      <div class="section-body">
+        <p>• <b>สำรวจ</b> — ลองทำกิจกรรมที่หลากหลาย ชมรม หรือค่ายที่เกี่ยวกับสิ่งที่คุณสนใจ</p>
+        <p style="margin-top:8px">• <b>อ่านและเรียนรู้</b> — หาหนังสือ สารคดี หรือ YouTube เกี่ยวกับอาชีพที่คุณสนใจ</p>
+        <p style="margin-top:8px">• <b>ลองทำจริง</b> — ถ้ามีโอกาส ลองทดลองทำสิ่งที่สนใจดู เช่น วาดรูป เขียนโค้ด ทำอาหาร</p>
+        <p style="margin-top:8px">• <b>พูดคุยกับผู้ใหญ่</b> — ปรึกษาครู พ่อแม่ หรือคนที่ทำงานในสายที่คุณสนใจ</p>
+      </div>
+    </div>`;
+
+  // บันทึกสำเร็จ
+  sectionsHTML += `
+    <div class="result-section" style="text-align:center">
+      <div class="section-h" style="color:var(--accent1)">บันทึกข้อมูลสำเร็จ ✓</div>
+      <div class="section-body"><p style="color:var(--text-dim)">หมายเลขของคุณ <b>${userSeq}</b> ได้รับการบันทึกเรียบร้อยแล้ว</p></div>
+    </div>`;
+
+  document.getElementById('result-sections').innerHTML = sectionsHTML;
+  showScreen('result');
+}
+</script>
+</body>
+</html>
